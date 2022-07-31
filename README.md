@@ -12,7 +12,7 @@ Using pyenv, for example:
 
 ### Create link to messages database
 
-    ln -s $HOME/Library/Messages/chat.db
+    ln -s $HOME/Library/Messages/chat.db .
 
 ### Install packages
 
@@ -20,7 +20,11 @@ Using pyenv, for example:
 
 ## Run from command line
 
-    ./messages.py
+    ./messages.py -
+
+To show messages matching a pattern, with context messages, eg:
+
+    ./messages.py '\w+dog|dog\w+'
 
 ## Run Web server
 
@@ -29,3 +33,5 @@ Using pyenv, for example:
 To run in debug mode:
 
     ./flask-run-debug.sh
+
+In debug mode, Flask will automatically reload when source files change.
