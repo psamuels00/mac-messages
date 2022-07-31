@@ -24,7 +24,7 @@ Using pyenv, for example:
 
 ## Run Web server
 
-    flask run
+    ./flask-run.sh
 
 To run in debug mode:
 
