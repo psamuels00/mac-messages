@@ -9,14 +9,22 @@ import sys
 import urllib.parse
 
 
-page_size = 10
+# /////////////////////////////////////////////////////////////// configuration
+
+
+enable_diagnostics = False
+num_context_messages = 0
+page_size = 32
+search_all_identifier = "-"
+
+
+# /////////////////////////////////////////////////////////////// global vars
+
+
 app = Flask(__name__)
 
 
 # /////////////////////////////////////////////////////////////// misc
-
-
-search_all_identifier = "-"
 
 
 def search_all(search):
@@ -59,7 +67,7 @@ def menu():
         <html>
         {head_with_style()}
         <body>
-            Hello, World!<br/>
+            Hello, chat world!<br/>
             <br/>
             Try an endpoint:
             <ul>
@@ -70,9 +78,23 @@ def menu():
                     ...jump to <a href="/message/dog/2">page 2</a>,
                     <a href="/message/dog/3">page 3</a>
                 </li>
+                <li>
+                    <a href="/message/dog%5Cw%2B">dog\w+</a> - messages matching /dog\w+/
+                    ...jump to <a href="/message/dog%5Cw%2B/2">page 2</a>,
+                    <a href="/message/dog%5Cw%2B/3">page 3</a>
+                </li>
                 <li><a href="/message/aristotle">aristotle</a> - messages containing "aristotle"</li>
                 <li><a href="/message/socrates">socrates</a> - messages containing "socrates"</li>
             </ul>
+            <hr/>
+            <div>
+                See <a href="https://www.urlencoder.io/">urlencoder.io</a> to encode search
+                patterns in the url with special regular expression characters.  For example,
+                this pattern:
+                <pre>    dog\w+</pre>
+                needs to be encoded as:
+                <pre>    dog%5Cw%2B</pre>
+            </div>
         </body>
     </html>
     """
@@ -91,6 +113,9 @@ def head_with_style():
         div {
             margin-bottom: 1em;
         }
+        hr {
+            margin: 2em 0em;
+        }
         button {
             background-color: #9CC;
             padding: 7px 15px;
@@ -101,7 +126,7 @@ def head_with_style():
             background-color: #699;
             color: white;
         }
-        span {
+        span.page-hint {
             color: #BBB;
             margin-left: 1em;
         }
@@ -116,6 +141,21 @@ def head_with_style():
             border: 1px solid black;
             padding: 3px 5px;
         }
+        td:last-child {
+            word-break: break-all;
+        }
+        td.atomic {
+            white-space: nowrap;
+        }
+        td.mine {
+            padding-left: 10em;
+        }
+        td.not-mine {
+        }
+        td span.match {
+            color: #3C3;
+            font-weight: bold;
+        }
     </style>
     </head>
     """
@@ -129,7 +169,7 @@ def message_count_section(search):
     content += [f"{num_messages} messages{matching}."]
 
     if num_messages > page_size:
-        content += [f"<span>Showing {page_size} at a time.</span>"]
+        content += [f'<span class="page-hint">Showing {page_size} at a time.</span>']
 
     content += ["</div>"]
 
@@ -164,6 +204,14 @@ def navigation_menu(search, page):
     ])
 
 
+def format_message(text, search):
+    # TODO Handle the case where the search pattern is found in a URL
+    if not search_all(search):
+        text = re.sub(f"({search})", r'<span class="match">\1</span>', text, 0, re.IGNORECASE)
+    text = re.sub(r"(https?://([^/]+)[^\s\"']*)", r'<a href="\1" target="_blank">\2</a>', text)
+    return text
+
+
 def html_content(rows, search, page):
     content = []
 
@@ -175,14 +223,39 @@ def html_content(rows, search, page):
     content += ['<table>']
 
     content += ["<tr>"]
-    for label in ("#", "date/time", "service name", "chat id", "originator", "tapback", "text"):
+    labels = ("#", "date/time", "service name", "chat id", "originator", "tapback", "text")
+    if enable_diagnostics:
+        labels = ("row#", "match offset", *labels)
+    for label in labels:
         content += [f'<th>{label}</th>']
     content += ["</tr>"]
 
     for row in rows:
         content += ["<tr>"]
-        for column in row:
-            content += [f"<td>{column}</td>"]
+
+        (row_num, date, service_name, chat_id, who, tapback, text, *extra) = row
+
+        num = row_num
+        if not search_all(search):
+            match_offset, match_index = extra
+            num = match_index if match_offset == 0 else ""
+        else:
+            match_offset = "?"
+
+        text = format_message(text, search)
+        whose_text = "mine" if who == "🤓" else "not-mine"
+
+        if enable_diagnostics:
+            content += [f"<td>{row_num}</td>"]
+            content += [f"<td>{match_offset}</td>"]
+        content += [f"<td>{num}</td>"]
+        content += [f'<td class="atomic">{date}</td>']
+        content += [f"<td>{service_name}</td>"]
+        content += [f"<td>{chat_id}</td>"]
+        content += [f"<td>{who}</td>"]
+        content += [f"<td>{tapback}</td>"]
+        content += [f'<td class="{whose_text}">{text}</td>']
+
         content += ["</tr>"]
 
     content += ["</table>"]
@@ -216,8 +289,14 @@ def text_content(rows, search):
     content += [f"#       date/time            service_name  chat_id                 originator  tapback  text"]
     content += [f"------  -------------------  ------------  ----------------------  ----------  -------  ----------------------"]
     for row in rows:
-        rownum, date, service_name, chat_id, originator, tapback, text = row
-        content += [f"{rownum:6}  {date}  {service_name:12}  {chat_id:22}  {originator:9}  {tapback:7}  {text:80}"]
+        (row_num, date, service_name, chat_id, who, tapback, text, *extra) = row
+
+        num = row_num
+        if not search_all(search):
+            match_offset, match_index = extra
+            num = match_index if match_offset == 0 else ""
+
+        content += [f"{num:6}  {date}  {service_name:12}  {chat_id:22}  {who:9}  {tapback:7}  {text:80}"]
 
     content = "".join([f"{line}\n" for line in content])
     return content
@@ -228,8 +307,10 @@ def text_content(rows, search):
 
 def where_clause(search=None):
     where = ""
+
     if not search_all(search):
         where = f"where text regexp '{search}'"
+
     return where
 
 
@@ -250,7 +331,7 @@ def create_message_view_sql():
                     else '🐵'
                 end who,
                 m.associated_message_type tapback,
-                m.text
+                ifnull(m.text, "") text
           from  message m
                 left join chat_message_join cmj on (cmj.message_id = m.ROWID)
                 left join chat c on (c.ROWID = cmj.chat_id)
@@ -285,22 +366,33 @@ def messages_sql(search=None, page=None):
              limit  {page_size} {offset}
         """
 
-    where = where_clause(search)
     return f"""
-        select  m1.*
-          from  numbered_message m1
-         where  m1.text regexp '{search}'
-         limit  {page_size} {offset}
+        select  *
+          from  (
+                    select  m2.*,
+                            m2.row_num - m1.row_num match_offset,
+                            m1.match_index
+                      from  (
+                                select  row_number() over(order by row_num) match_index,
+                                        *
+                                  from  numbered_message
+                                 where  text regexp '{search}'
+                                 limit  {page_size} {offset}
+                            ) m1,
+                            numbered_message m2
+                     where  m2.row_num between m1.row_num - {num_context_messages}
+                                           and m1.row_num + {num_context_messages}
+                  order by  m2.row_num, abs(match_offset)
+                )
+      group by  row_num
     """
-    return f"""
-        select  m1.*
-          from  numbered_message m1,
-                numbered_message m2
-         where  m1.row_num = m2.row_num
-                and m2.text regexp '{search}'
-         -- where  m1.row_num between m2.row_num - 3 and m2.row_num + 3
-         -- limit  {page_size} {offset}
-    """
+# we use row_number() again to get the index of the matching row
+# we join numbered_message with itself to capture context messages
+# match_offset indicates the offset of the message from the message matching a search criteria
+# match_offset is 0 for a matching message, -1 and 1 for messages surrounding it, -2 and 2 for the next,...
+# match_index is the index of the matching message with respect to all matching messages
+# we add abs(match_offset) to the order to ensure a row that is a match precedes one that is just context
+# we group by row_num to take the first message only, in case a message appears multiple times
 
 
 # /////////////////////////////////////////////////////////////// database access
