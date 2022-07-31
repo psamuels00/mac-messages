@@ -13,6 +13,16 @@ page_size = 10
 app = Flask(__name__)
 
 
+# /////////////////////////////////////////////////////////////// misc
+
+
+search_all_identifier = "-"
+
+
+def search_all(search):
+    return search is None or search == search_all_identifier
+
+
 # /////////////////////////////////////////////////////////////// HTTP endpoints
 
 
@@ -115,7 +125,7 @@ def message_count_section(search):
 
     content = ["<div>"]
 
-    matching = f" matching /{search}/" if search and search != "-" else ""
+    matching = "" if search_all(search) else f" matching /{search}/"
     content += [f"{num_messages} messages{matching}."]
 
     if num_messages > page_size:
@@ -140,7 +150,7 @@ def navigation_menu(search, page):
 
     num_messages = count_messages(search)
     max_page = int(num_messages / page_size) + 1
-    search = "-" if search is None else search
+    search = search_all_identifier if search_all(search) else search
     search = urllib.parse.quote_plus(search)
 
     return "".join([
@@ -188,7 +198,7 @@ def html_content(rows, search, page):
 
 def message_count_header(search):
     num_messages = count_messages(search)
-    matching = f" matching /{search}/" if search else ""
+    matching = "" if search_all(search) else f" matching /{search}/"
 
     line = f"{num_messages} messages{matching}"
     if num_messages > page_size:
@@ -216,46 +226,80 @@ def text_content(rows, search):
 # /////////////////////////////////////////////////////////////// database queries
 
 
-def search_where_clause(search):
-    if search == "-":
-        return ""
-    return f"where text regexp '{search}'" if search else ""
+def where_clause(search=None):
+    where = ""
+    if not search_all(search):
+        where = f"where text regexp '{search}'"
+    return where
 
 
 def messages_count_sql(search=None):
-    where = search_where_clause(search)
+    where = where_clause(search)
     return f"select count(*) from message {where}"
 
 
-def messages_sql(search=None, page=None):
-    where = search_where_clause(search)
+def create_message_view_sql():
+    return f"""
+        create view if not exists numbered_message as
+        select  row_number() over(order by m.date desc, c.service_name, c.chat_identifier) row_num,
+                datetime(m.date/1000000000  + strftime('%s','2001-01-01'), 'unixepoch', 'localtime') dt,
+                c.service_name,
+                c.chat_identifier,
+                case m.is_from_me
+                    when 1 then '🤓'
+                    else '🐵'
+                end who,
+                m.associated_message_type tapback,
+                m.text
+          from  message m
+                left join chat_message_join cmj on (cmj.message_id = m.ROWID)
+                left join chat c on (c.ROWID = cmj.chat_id)
+      group by  m.guid
+    """
+# we use left join because some messages are not associated with a chat
+# we group by m.guid to take the first message only in case a message
+# is associated with more than one service_name and/or chat_identifier
+
+
+def drop_message_view_sql():
+    return "drop view if exists numbered_message"
+
+
+def query_offset(page=None):
     offset = ""
+
     if page:
         row_offset = (page - 1) * page_size
         offset = f"offset {row_offset}"
 
+    return offset
+
+
+def messages_sql(search=None, page=None):
+    offset = query_offset(page)
+
+    if search_all(search):
+        return f"""
+            select  *
+              from  numbered_message
+             limit  {page_size} {offset}
+        """
+
+    where = where_clause(search)
     return f"""
-        select  row_number() over(order by dt, service_name, chat_identifier),
-                *
-          from  (
-
-                select  datetime(m.date/1000000000  + strftime('%s','2001-01-01'), 'unixepoch', 'localtime') dt,
-                        c.service_name,
-                        c.chat_identifier,
-                        case m.is_from_me
-                            when 1 then '🤓'
-                            else '🐵'
-                        end,
-                        m.associated_message_type,
-                        m.text
-                  from  message m
-                        join chat_message_join cmj on (cmj.message_id = m.ROWID)
-                        join chat c on (c.ROWID = cmj.chat_id)
-               {where}
-              order by  m.date desc, c.service_name, c.chat_identifier
-
-                )
+        select  m1.*
+          from  numbered_message m1
+         where  m1.text regexp '{search}'
          limit  {page_size} {offset}
+    """
+    return f"""
+        select  m1.*
+          from  numbered_message m1,
+                numbered_message m2
+         where  m1.row_num = m2.row_num
+                and m2.text regexp '{search}'
+         -- where  m1.row_num between m2.row_num - 3 and m2.row_num + 3
+         -- limit  {page_size} {offset}
     """
 
 
@@ -279,8 +323,10 @@ def open_database():
 def count_messages(search=None):
     db = open_database()
     cursor = db.cursor()
+    cursor.execute(create_message_view_sql())
     cursor.execute(messages_count_sql(search))
     rows = cursor.fetchall()
+    cursor.execute(drop_message_view_sql())
 
     return rows[0][0]
 
@@ -288,8 +334,10 @@ def count_messages(search=None):
 def select_messages(type, search=None, page=1):
     db = open_database()
     cursor = db.cursor()
+    cursor.execute(create_message_view_sql())
     cursor.execute(messages_sql(search, page))
     rows = cursor.fetchall()
+    cursor.execute(drop_message_view_sql())
 
     if type == 'html':
         content = html_content(rows, search, page)
