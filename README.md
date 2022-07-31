@@ -35,4 +35,3 @@ To run in debug mode:
     ./flask-run-debug.sh
 
 In debug mode, Flask will automatically reload when source files change.
-
