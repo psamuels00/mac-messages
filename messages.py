@@ -13,9 +13,18 @@ import urllib.parse
 
 
 enable_diagnostics = False
-num_context_messages = 0
-page_size = 32
+num_context_messages = 3
+page_size = 10
+
+
+# /////////////////////////////////////////////////////////////// constants
+
+
+link_stub = "~~~<<<:::@@@:::>>>~~~"
+# any string not likely to be searched for, and not containing regular expression special chars
+
 search_all_identifier = "-"
+# will appear in the URL, also should be something not likely to be searched for
 
 
 # /////////////////////////////////////////////////////////////// global vars
@@ -72,19 +81,21 @@ def menu():
             Try an endpoint:
             <ul>
                 <li><a href="/message/count">count</a> - total number of messages</li>
-                <li><a href="/message">all</a> - all messages</li>
+                <li>
+                    <a href="/message">all</a> - all messages
+                    -- jump to <a href="/message/-/2">page 2</a>,
+                    <a href="/message/-/3">page 3</a>, ...
+                </li>
                 <li>
                     <a href="/message/dog">dog</a> - messages containing "dog"
-                    ...jump to <a href="/message/dog/2">page 2</a>,
-                    <a href="/message/dog/3">page 3</a>
+                    -- jump to <a href="/message/dog/2">page 2</a>,
+                    <a href="/message/dog/3">page 3</a>, ...
                 </li>
-                <li>
-                    <a href="/message/dog%5Cw%2B">dog\w+</a> - messages matching /dog\w+/
-                    ...jump to <a href="/message/dog%5Cw%2B/2">page 2</a>,
-                    <a href="/message/dog%5Cw%2B/3">page 3</a>
-                </li>
+                <li><a href="/message/dog%5Cw%2B">dog\w+</a> - messages matching /dog\w+/</li>
+                <li><a href="/message/%5Cw%2Adog%5Cw%2A">\w*dog\w*</a> - messages matching /\w*dog\w*/</li>
                 <li><a href="/message/aristotle">aristotle</a> - messages containing "aristotle"</li>
                 <li><a href="/message/socrates">socrates</a> - messages containing "socrates"</li>
+                <li><a href="/message/godzilla">godzilla</a> - messages containing "godzilla"</li>
             </ul>
             <hr/>
             <div>
@@ -100,7 +111,7 @@ def menu():
     """
 
 
-# /////////////////////////////////////////////////////////////// HTML output
+# /////////////////////////////////////////////////////////////// HTML results
 
 
 def head_with_style():
@@ -133,13 +144,20 @@ def head_with_style():
         table { 
             border-collapse: collapse;
         }
+        tr.context {
+            color: #AAA;
+        }
+        th {
+            border: 1px solid black;
+            padding: 5px 5px;
+        }
+        td {
+            border: 1px solid black;
+            padding: 3px 5px;
+        }
         th,
         td:first-child {
             background-color: #DDD;
-        }
-        th, td {
-            border: 1px solid black;
-            padding: 3px 5px;
         }
         td:last-child {
             word-break: break-all;
@@ -205,10 +223,34 @@ def navigation_menu(search, page):
 
 
 def format_message(text, search):
-    # TODO Handle the case where the search pattern is found in a URL
+    # The formatting is complicated by the possibility that the search pattern
+    # is found in a link, which we do not want to disturb.
+    #
+    # Our solution is to
+    #   1.  replace all the links with stubs, saving the links in an array
+    #   2.  format matches on the search pattern
+    #   3.  replace the stubs with links based on the saved links array
+
+    saved_links = []
+
+    def swap_link_with_stub(matchobj):
+        url = matchobj.group(1)
+        label = matchobj.group(2)
+        saved_links.append((url, label))
+        return link_stub
+
+    def swap_stub_with_link(matchobj):
+        url, label = saved_links[0]
+        del saved_links[0]
+        return rf'<a href="{url}" target="_blank">{label}</a>'
+
+    text = re.sub(r"(https?://([^/]+)[^\s\"']*)", swap_link_with_stub, text)
+
     if not search_all(search):
         text = re.sub(f"({search})", r'<span class="match">\1</span>', text, 0, re.IGNORECASE)
-    text = re.sub(r"(https?://([^/]+)[^\s\"']*)", r'<a href="\1" target="_blank">\2</a>', text)
+
+    text = re.sub(link_stub, swap_stub_with_link, text)
+
     return text
 
 
@@ -223,7 +265,7 @@ def html_content(rows, search, page):
     content += ['<table>']
 
     content += ["<tr>"]
-    labels = ("#", "date/time", "service name", "chat id", "originator", "tapback", "text")
+    labels = ("#", "date/time", "service", "chat id", "originator", "tapback", "text")
     if enable_diagnostics:
         labels = ("row#", "match offset", *labels)
     for label in labels:
@@ -231,8 +273,6 @@ def html_content(rows, search, page):
     content += ["</tr>"]
 
     for row in rows:
-        content += ["<tr>"]
-
         (row_num, date, service_name, chat_id, who, tapback, text, *extra) = row
 
         num = row_num
@@ -244,6 +284,9 @@ def html_content(rows, search, page):
 
         text = format_message(text, search)
         whose_text = "mine" if who == "🤓" else "not-mine"
+
+        row_class = 'class="context"' if match_offset != 0 else ""
+        content += [f"<tr {row_class}>"]
 
         if enable_diagnostics:
             content += [f"<td>{row_num}</td>"]
@@ -266,7 +309,7 @@ def html_content(rows, search, page):
     return content
 
 
-# /////////////////////////////////////////////////////////////// text output
+# /////////////////////////////////////////////////////////////// text results
 
 
 def message_count_header(search):
