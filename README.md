@@ -1,5 +1,5 @@
 # mac-messages
-Search through messages on a Mac
+Search through messages on a Mac.
 
 ## Preparation
 
