@@ -507,7 +507,4 @@ def text_query():
 
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        text_query()
-    else:
-        app.run('0.0.0.0', 8085)
+    text_query()
