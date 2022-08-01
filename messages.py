@@ -13,6 +13,8 @@ import urllib.parse
 
 
 enable_diagnostics = False
+icon_me = "🤓"
+icon_you = "🐵"
 num_context_messages = 3
 page_size = 10
 
@@ -273,7 +275,7 @@ def html_content(rows, search, page):
     content += ["</tr>"]
 
     for row in rows:
-        (row_num, date, service_name, chat_id, who, tapback, text, *extra) = row
+        (row_num, date, service_name, chat_id, is_from_me, tapback, text, *extra) = row
 
         num = row_num
         if not search_all(search):
@@ -283,7 +285,12 @@ def html_content(rows, search, page):
             match_offset = "?"
 
         text = format_message(text, search)
-        whose_text = "mine" if who == "🤓" else "not-mine"
+        if is_from_me:
+            whose_text = "mine"
+            who = icon_me
+        else:
+            whose_text = "not-mine"
+            who = icon_you
 
         row_class = 'class="context"' if match_offset != 0 else ""
         content += [f"<tr {row_class}>"]
@@ -332,12 +339,14 @@ def text_content(rows, search):
     content += [f"#       date/time            service_name  chat_id                 originator  tapback  text"]
     content += [f"------  -------------------  ------------  ----------------------  ----------  -------  ----------------------"]
     for row in rows:
-        (row_num, date, service_name, chat_id, who, tapback, text, *extra) = row
+        (row_num, date, service_name, chat_id, is_from_me, tapback, text, *extra) = row
 
         num = row_num
         if not search_all(search):
             match_offset, match_index = extra
             num = match_index if match_offset == 0 else ""
+
+        who = icon_me if is_from_me else icon_you
 
         content += [f"{num:6}  {date}  {service_name:12}  {chat_id:22}  {who:9}  {tapback:7}  {text:80}"]
 
@@ -369,10 +378,7 @@ def create_message_view_sql():
                 datetime(m.date/1000000000  + strftime('%s','2001-01-01'), 'unixepoch', 'localtime') dt,
                 c.service_name,
                 c.chat_identifier,
-                case m.is_from_me
-                    when 1 then '🤓'
-                    else '🐵'
-                end who,
+                m.is_from_me,
                 m.associated_message_type tapback,
                 ifnull(m.text, "") text
           from  message m
