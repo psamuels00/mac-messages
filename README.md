@@ -34,7 +34,7 @@ To show the third page of results, eg:
 
     ./server-run.sh
 
-To run in debug mode:
+To run in development mode:
 
     ./server-run-dev.sh
 
