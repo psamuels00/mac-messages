@@ -80,8 +80,17 @@ def menu():
         <html>
         {head_with_style()}
         <body>
-            Hello, chat world!<br/>
-            <br/>
+            <div>
+                Welcome to Mac Messages
+            </div>
+            
+            <form name="search"
+                  onsubmit="javascript: window.location.href = '/message/' + encodeURI(document.forms.search.search.value); return false;">
+                Search for:
+                <input name="search" type="text" size="20" />
+                <input type="submit" value="Submit" />
+            </form>
+            
             Try an endpoint:
             <ul>
                 <li><a href="/message/count">count</a> - total number of messages</li>
@@ -101,15 +110,6 @@ def menu():
                 <li><a href="/message/socrates">socrates</a> - messages containing "socrates"</li>
                 <li><a href="/message/godzilla">godzilla</a> - messages containing "godzilla"</li>
             </ul>
-            <hr/>
-            <div>
-                See <a href="https://www.urlencoder.io/">urlencoder.io</a> to encode search
-                patterns in the url with special regular expression characters.  For example,
-                this pattern:
-                <pre>    dog\w+</pre>
-                needs to be encoded as:
-                <pre>    dog%5Cw%2B</pre>
-            </div>
         </body>
     </html>
     """
