@@ -352,6 +352,7 @@ def text_content(rows, search):
             num = match_index if match_offset == 0 else ""
 
         who = icon_me if is_from_me else icon_you
+        text = re.sub(r"\n", r"\\n", text)
         text = text[0:text_columns]
 
         content += [f"{num:6}  {date:19}  {service_name:12}  {chat_id:22}  {who:9}  {tapback:7}  {text}"]
