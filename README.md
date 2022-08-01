@@ -20,7 +20,7 @@ Using pyenv, for example:
 
 ## Run from command line
 
-    ./messages.py -
+    ./messages.py
 
 To show messages matching a pattern, with context messages, eg:
 
