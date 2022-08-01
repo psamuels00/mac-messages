@@ -13,12 +13,12 @@ import urllib.parse
 # /////////////////////////////////////////////////////////////// configuration
 
 
+default_page_size = 10  # num messages or matching messages to display at once
 default_text_columns = 100  # in case COLUMNS environment var not set
 enable_diagnostics = False
 icon_me = "🤓"
 icon_you = "🐵"
 num_context_messages = 3
-page_size = 10
 
 
 # /////////////////////////////////////////////////////////////// constants
@@ -52,6 +52,16 @@ async def hello():
     return menu()
 
 
+@app.get("/menu")
+async def hello_menu():
+    return menu()
+
+
+@app.get("/menu/{page_size}")
+async def hello_menu(page_size :int):
+    return menu(page_size)
+
+
 @app.get("/message/count")
 async def message_count():
     return str(count_messages())
@@ -72,10 +82,19 @@ async def message_search_page(search, page :int):
     return select_messages('html', search, page)
 
 
+@app.get("/message/{search}/{page}/{page_size}")
+async def message_search_page(search, page :int, page_size :int):
+    return select_messages('html', search, page, page_size)
+
+
 # /////////////////////////////////////////////////////////////// HTML menu
 
 
-def menu():
+def menu(page_size=default_page_size):
+    optional = ""
+    if page_size != default_page_size:
+        optional = f"/{page_size}"
+
     return f"""
         <html>
         {head_with_style()}
@@ -85,7 +104,13 @@ def menu():
             </div>
             
             <form name="search"
-                  onsubmit="javascript: window.location.href = '/message/' + encodeURI(document.forms.search.search.value); return false;">
+                onsubmit="javascript:
+                          window.location.href
+                              = '/message/'
+                              + encodeURI(document.forms.search.search.value)
+                              + '/1'
+                              + '{optional}';
+                          return false;">
                 Search for:
                 <input name="search" type="text" size="20" />
                 <input type="submit" value="Submit" />
@@ -95,20 +120,21 @@ def menu():
             <ul>
                 <li><a href="/message/count">count</a> - total number of messages</li>
                 <li>
-                    <a href="/message">all</a> - all messages
-                    -- jump to <a href="/message/-/2">page 2</a>,
-                    <a href="/message/-/3">page 3</a>, ...
+                    <!-- TODO Do not add search or page unless necessary -->
+                    <a href="/message/-/1{optional}">all</a> - all messages
+                    -- jump to <a href="/message/-/2{optional}">page 2</a>,
+                    <a href="/message/-/3{optional}">page 3</a>, ...
                 </li>
                 <li>
-                    <a href="/message/dog">dog</a> - messages containing "dog"
-                    -- jump to <a href="/message/dog/2">page 2</a>,
-                    <a href="/message/dog/3">page 3</a>, ...
+                    <a href="/message/dog/1{optional}">dog</a> - messages containing "dog"
+                    -- jump to <a href="/message/dog/2{optional}">page 2</a>,
+                    <a href="/message/dog/3{optional}">page 3</a>, ...
                 </li>
-                <li><a href="/message/dog%5Cw%2B">dog\w+</a> - messages matching /dog\w+/</li>
-                <li><a href="/message/%5Cw%2Adog%5Cw%2A">\w*dog\w*</a> - messages matching /\w*dog\w*/</li>
-                <li><a href="/message/aristotle">aristotle</a> - messages containing "aristotle"</li>
-                <li><a href="/message/socrates">socrates</a> - messages containing "socrates"</li>
-                <li><a href="/message/godzilla">godzilla</a> - messages containing "godzilla"</li>
+                <li><a href="/message/dog%5Cw%2B/1{optional}">dog\w+</a> - messages matching /dog\w+/</li>
+                <li><a href="/message/%5Cw%2Adog%5Cw%2A/1{optional}">\w*dog\w*</a> - messages matching /\w*dog\w*/</li>
+                <li><a href="/message/aristotle/1{optional}">aristotle</a> - messages containing "aristotle"</li>
+                <li><a href="/message/socrates/1{optional}">socrates</a> - messages containing "socrates"</li>
+                <li><a href="/message/godzilla/1{optional}">godzilla</a> - messages containing "godzilla"</li>
             </ul>
         </body>
     </html>
@@ -182,7 +208,7 @@ def head_with_style():
     </head>
     """
 
-def message_count_section(search):
+def message_count_section(search, page_size):
     num_messages = count_messages(search)
 
     content = ["<div>"]
@@ -206,7 +232,7 @@ def menu_option(uri, label):
     '''
 
 
-def navigation_menu(search, page):
+def navigation_menu(search, page, page_size):
     if page is None:
         return ""
 
@@ -215,13 +241,19 @@ def navigation_menu(search, page):
     search = search_all_identifier if search_all(search) else search
     search = urllib.parse.quote_plus(search)
 
+    optional_home = ""
+    optional = ""
+    if page_size != default_page_size:
+        optional_home = f"menu/{page_size}"
+        optional = f"/{page_size}"
+
     return "".join([
         "<div>",
-            menu_option("/", "Home"),
-            menu_option(f"/message/{search}/1", "&lt;&lt;"),
-            menu_option(f"/message/{search}/{page-1}", "&lt;"),
-            menu_option(f"/message/{search}/{page+1}", "&gt;"),
-            menu_option(f"/message/{search}/{max_page}", "&gt;&gt;"),
+            menu_option(f"/{optional_home}", "Home"),
+            menu_option(f"/message/{search}/1{optional}", "&lt;&lt;"),
+            menu_option(f"/message/{search}/{page-1}{optional}", "&lt;"),
+            menu_option(f"/message/{search}/{page+1}{optional}", "&gt;"),
+            menu_option(f"/message/{search}/{max_page}{optional}", "&gt;&gt;"),
         "</div>"
     ])
 
@@ -258,14 +290,14 @@ def format_message(text, search):
     return text
 
 
-def html_content(rows, search, page):
+def html_content(rows, search, page, page_size):
     content = []
 
     content += ["<html>"]
     content += [head_with_style()]
     content += ["<body>"]
-    content += message_count_section(search)
-    content += navigation_menu(search, page)
+    content += message_count_section(search, page_size)
+    content += navigation_menu(search, page, page_size)
     content += ['<table>']
 
     content += ["<tr>"]
@@ -321,7 +353,7 @@ def html_content(rows, search, page):
 # /////////////////////////////////////////////////////////////// text results
 
 
-def message_count_header(search):
+def message_count_header(search, page_size):
     num_messages = count_messages(search)
     matching = "" if search_all(search) else f" matching /{search}/"
 
@@ -333,13 +365,13 @@ def message_count_header(search):
     return [line, ""]
 
 
-def text_content(rows, search):
+def text_content(rows, search, page_size):
     columns = int(os.environ.get("COLUMNS", default_text_columns))
     fixed_columns = 88  # num columns dedicated to all fields except the last, "text"
     text_columns = columns - fixed_columns
     dashes = "-" * text_columns
 
-    content = message_count_header(search)
+    content = message_count_header(search, page_size)
 
     content += [f"#       date/time            service_name  chat_id                 originator  tapback  text"]
     content += [f"------  -------------------  ------------  ----------------------  ----------  -------  {dashes}"]
@@ -405,7 +437,7 @@ def drop_message_view_sql():
     return "drop view if exists numbered_message"
 
 
-def query_offset(page=None):
+def query_offset(page, page_size):
     offset = ""
 
     if page:
@@ -415,8 +447,8 @@ def query_offset(page=None):
     return offset
 
 
-def messages_sql(search=None, page=None):
-    offset = query_offset(page)
+def messages_sql(search, page, page_size):
+    offset = query_offset(page, page_size)
 
     if search_all(search):
         return f"""
@@ -482,18 +514,18 @@ def count_messages(search=None):
     return rows[0][0]
 
 
-def select_messages(type, search=None, page=1):
+def select_messages(type, search=None, page=1, page_size=default_page_size):
     db = open_database()
     cursor = db.cursor()
     cursor.execute(create_message_view_sql())
-    cursor.execute(messages_sql(search, page))
+    cursor.execute(messages_sql(search, page, page_size))
     rows = cursor.fetchall()
     cursor.execute(drop_message_view_sql())
 
     if type == 'html':
-        content = html_content(rows, search, page)
+        content = html_content(rows, search, page, page_size)
     else:
-        content = text_content(rows, search)
+        content = text_content(rows, search, page_size)
 
     return content
 
