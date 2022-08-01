@@ -608,7 +608,9 @@ def select_messages(type, search=None, page=1, page_size=default_page_size, cont
 def text_query():
     search = sys.argv[1] if len(sys.argv) > 1 else None
     page = sys.argv[2] if len(sys.argv) > 2 else 1
-    print(select_messages('text', search, int(page)))
+    page_size = sys.argv[3] if len(sys.argv) > 3 else default_page_size
+    context_size = sys.argv[4] if len(sys.argv) > 4 else default_context_size
+    print(select_messages('text', search, int(page), int(page_size), int(context_size)))
 
 
 if __name__ == '__main__':
