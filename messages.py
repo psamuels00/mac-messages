@@ -13,12 +13,12 @@ import urllib.parse
 # /////////////////////////////////////////////////////////////// configuration
 
 
+default_context_size = 3  # num messages before and after a match to display
 default_page_size = 10  # num messages or matching messages to display at once
 default_text_columns = 100  # in case COLUMNS environment var not set
 enable_diagnostics = False
 icon_me = "🤓"
 icon_you = "🐵"
-num_context_messages = 3
 
 
 # /////////////////////////////////////////////////////////////// constants
@@ -62,6 +62,11 @@ async def hello_menu(page_size :int):
     return menu(page_size)
 
 
+@app.get("/menu/{page_size}/{context_size}")
+async def hello_menu(page_size :int, context_size :int):
+    return menu(page_size, context_size)
+
+
 @app.get("/message/count")
 async def message_count():
     return str(count_messages())
@@ -73,33 +78,50 @@ async def message():
 
 
 @app.get("/message/{search}")
-async def message_search(search):
+async def message(search):
     return select_messages('html', search)
 
 
 @app.get("/message/{search}/{page}")
-async def message_search_page(search, page :int):
+async def message(search, page :int):
     return select_messages('html', search, page)
 
 
 @app.get("/message/{search}/{page}/{page_size}")
-async def message_search_page(search, page :int, page_size :int):
+async def message(search, page :int, page_size :int):
     return select_messages('html', search, page, page_size)
+
+
+@app.get("/message/{search}/{page}/{page_size}/{context_size}")
+async def message(search, page :int, page_size :int, context_size :int):
+    return select_messages('html', search, page, page_size, context_size)
 
 
 # /////////////////////////////////////////////////////////////// HTML menu
 
 
-def menu(page_size=default_page_size):
+def menu(page_size=default_page_size, context_size=default_context_size):
     optional = ""
-    if page_size != default_page_size:
+    optional_num_context = ""
+    if page_size != default_page_size and context_size != default_context_size:
+        optional = f"/{page_size}/{context_size}"
+        optional_num_context = f"/{context_size}"
+    elif page_size != default_page_size:
         optional = f"/{page_size}"
+    elif context_size != default_context_size:
+        optional_num_context = f"/{context_size}"
+
+    min100 = ".{100,}"  # we must interpolate this value instead of including it directly
+                        # in the return value since it contains brackets that would
+                        # otherwise disturb the python string formattting
+
+    # TODO Do not add search, page, page_size, or context_size to links unless necessary
 
     return f"""
         <html>
         {head_with_style()}
         <body>
-            <div>
+            <div class="title">
                 Welcome to Mac Messages
             </div>
             
@@ -116,25 +138,48 @@ def menu(page_size=default_page_size):
                 <input type="submit" value="Submit" />
             </form>
             
-            Try an endpoint:
+            <hr />
+            
+            Total number of messages:
             <ul>
                 <li><a href="/message/count">count</a> - total number of messages</li>
-                <li>
-                    <!-- TODO Do not add search or page unless necessary -->
-                    <a href="/message/-/1{optional}">all</a> - all messages
-                    -- jump to <a href="/message/-/2{optional}">page 2</a>,
-                    <a href="/message/-/3{optional}">page 3</a>, ...
-                </li>
-                <li>
-                    <a href="/message/dog/1{optional}">dog</a> - messages containing "dog"
-                    -- jump to <a href="/message/dog/2{optional}">page 2</a>,
-                    <a href="/message/dog/3{optional}">page 3</a>, ...
-                </li>
+            </ul>
+            
+            All messages, default paging:
+            <ul>
+                <li><a href="/message/-/1{optional}">all</a> - all messages</li>
+            </ul>
+            
+            Messages matching a regular expression:
+            <ul>
+                <li><a href="/message/dog/1{optional}">dog</a> - messages containing "dog"</li>
                 <li><a href="/message/dog%5Cw%2B/1{optional}">dog\w+</a> - messages matching /dog\w+/</li>
                 <li><a href="/message/%5Cw%2Adog%5Cw%2A/1{optional}">\w*dog\w*</a> - messages matching /\w*dog\w*/</li>
                 <li><a href="/message/aristotle/1{optional}">aristotle</a> - messages containing "aristotle"</li>
                 <li><a href="/message/socrates/1{optional}">socrates</a> - messages containing "socrates"</li>
                 <li><a href="/message/godzilla/1{optional}">godzilla</a> - messages containing "godzilla"</li>
+                <li><a href="/message/.%7B100%2C%7D/1{optional}">{min100}</a> - messages at least 100 characters long</li>
+            </ul>
+            
+            Messages at a specific page of results:
+            <ul>
+                <li><a href="/message/-/2{optional}">all</a> - all messages, page 2</li>
+                <li><a href="/message/-/7{optional}">all</a> - all messages, page 7</li>
+                <li><a href="/message/dog/2{optional}">dog</a> - messages containing "dog", page 2</li>
+                <li><a href="/message/dog/3{optional}">dog</a> - messages containing "dog", page 3</li>
+            </ul>
+            
+            Custom page size:
+            <ul>
+                <li><a href="/message/-/1/100{optional_num_context}">all</a> - all messages, 100 per page</li>
+                <li><a href="/message/dog/1/100{optional_num_context}">dog</a> - messages containing "dog", 100 per page</li>
+            </ul>
+            
+            Custom context size:
+            <ul>
+                <li><a href="/message/dog/1/10/2">dog</a> - messages containing "dog", with 2 context messages before and after</li>
+                <li><a href="/message/dog/1/10/1">dog</a> - messages containing "dog", with 1 context message before and after</li>
+                <li><a href="/message/dog/1/10/0">dog</a> - messages containing "dog", with no context messages</li>
             </ul>
         </body>
     </html>
@@ -151,8 +196,14 @@ def head_with_style():
         body {
              font-family: sans-serif;
         }
+        div.title {
+            font-size: 150%;
+        }
         div {
             margin-bottom: 1em;
+        }
+        form {
+            margin: 2em 0em;
         }
         hr {
             margin: 2em 0em;
@@ -204,6 +255,9 @@ def head_with_style():
             color: #3C3;
             font-weight: bold;
         }
+        li a {
+            font-family: monospace;
+        }
     </style>
     </head>
     """
@@ -232,7 +286,7 @@ def menu_option(uri, label):
     '''
 
 
-def navigation_menu(search, page, page_size):
+def navigation_menu(search, page, page_size, context_size):
     if page is None:
         return ""
 
@@ -243,9 +297,12 @@ def navigation_menu(search, page, page_size):
 
     optional_home = ""
     optional = ""
-    if page_size != default_page_size:
+    if page_size != default_page_size or context_size != default_context_size:
         optional_home = f"menu/{page_size}"
         optional = f"/{page_size}"
+    if context_size != default_context_size:
+        optional_home += f"/{context_size}"
+        optional += f"/{context_size}"
 
     return "".join([
         "<div>",
@@ -290,14 +347,14 @@ def format_message(text, search):
     return text
 
 
-def html_content(rows, search, page, page_size):
+def html_content(rows, search, page, page_size, context_size):
     content = []
 
     content += ["<html>"]
     content += [head_with_style()]
     content += ["<body>"]
     content += message_count_section(search, page_size)
-    content += navigation_menu(search, page, page_size)
+    content += navigation_menu(search, page, page_size, context_size)
     content += ['<table>']
 
     content += ["<tr>"]
@@ -447,7 +504,7 @@ def query_offset(page, page_size):
     return offset
 
 
-def messages_sql(search, page, page_size):
+def messages_sql(search, page, page_size, context_size):
     offset = query_offset(page, page_size)
 
     if search_all(search):
@@ -471,8 +528,8 @@ def messages_sql(search, page, page_size):
                                  limit  {page_size} {offset}
                             ) m1,
                             numbered_message m2
-                     where  m2.row_num between m1.row_num - {num_context_messages}
-                                           and m1.row_num + {num_context_messages}
+                     where  m2.row_num between m1.row_num - {context_size}
+                                           and m1.row_num + {context_size}
                   order by  m2.row_num, abs(match_offset)
                 )
       group by  row_num
@@ -514,16 +571,16 @@ def count_messages(search=None):
     return rows[0][0]
 
 
-def select_messages(type, search=None, page=1, page_size=default_page_size):
+def select_messages(type, search=None, page=1, page_size=default_page_size, context_size=default_context_size):
     db = open_database()
     cursor = db.cursor()
     cursor.execute(create_message_view_sql())
-    cursor.execute(messages_sql(search, page, page_size))
+    cursor.execute(messages_sql(search, page, page_size, context_size))
     rows = cursor.fetchall()
     cursor.execute(drop_message_view_sql())
 
     if type == 'html':
-        content = html_content(rows, search, page, page_size)
+        content = html_content(rows, search, page, page_size, context_size)
     else:
         content = text_content(rows, search, page_size)
 
