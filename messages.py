@@ -293,7 +293,7 @@ def html_content(rows, search, page):
             whose_text = "yours"
             who = icon_you
 
-        row_class = 'class="context"' if match_offset != 0 else ""
+        row_class = "" if search_all(search) or match_offset == 0 else 'class="context"'
         content += [f"<tr {row_class}>"]
 
         if enable_diagnostics:
