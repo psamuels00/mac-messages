@@ -170,7 +170,7 @@ def head_with_style():
         td.mine {
             padding-left: 10em;
         }
-        td.not-mine {
+        td.yours {
         }
         td span.match {
             color: #3C3;
@@ -289,7 +289,7 @@ def html_content(rows, search, page):
             whose_text = "mine"
             who = icon_me
         else:
-            whose_text = "not-mine"
+            whose_text = "yours"
             who = icon_you
 
         row_class = 'class="context"' if match_offset != 0 else ""
