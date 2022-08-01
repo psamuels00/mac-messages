@@ -12,6 +12,7 @@ import urllib.parse
 # /////////////////////////////////////////////////////////////// configuration
 
 
+default_text_columns = 100  # in case COLUMNS environment var not set
 enable_diagnostics = False
 icon_me = "🤓"
 icon_you = "🐵"
@@ -332,12 +333,16 @@ def message_count_header(search):
 
 
 def text_content(rows, search):
-    content = []
+    columns = int(os.environ.get("COLUMNS", default_text_columns))
+    fixed_columns = 88  # num columns dedicated to all fields except the last, "text"
+    text_columns = columns - fixed_columns
+    dashes = "-" * text_columns
 
-    content += message_count_header(search)
+    content = message_count_header(search)
 
     content += [f"#       date/time            service_name  chat_id                 originator  tapback  text"]
-    content += [f"------  -------------------  ------------  ----------------------  ----------  -------  ----------------------"]
+    content += [f"------  -------------------  ------------  ----------------------  ----------  -------  {dashes}"]
+
     for row in rows:
         (row_num, date, service_name, chat_id, is_from_me, tapback, text, *extra) = row
 
@@ -347,8 +352,11 @@ def text_content(rows, search):
             num = match_index if match_offset == 0 else ""
 
         who = icon_me if is_from_me else icon_you
+        text = text[0:text_columns]
 
-        content += [f"{num:6}  {date}  {service_name:12}  {chat_id:22}  {who:9}  {tapback:7}  {text:80}"]
+        content += [f"{num:6}  {date:19}  {service_name:12}  {chat_id:22}  {who:9}  {tapback:7}  {text}"]
+        # note the width used for who is one less than the actual number of columns
+        # that is needed since the value, a smiley, takes two columns
 
     content = "".join([f"{line}\n" for line in content])
     return content
