@@ -103,6 +103,7 @@ async def message(search, page :int, page_size :int, context_size :int):
 def menu(page_size=default_page_size, context_size=default_context_size):
     optional = ""
     optional_num_context = ""
+    reset_link = '<a href="/menu">reset</a>'
     if page_size != default_page_size and context_size != default_context_size:
         optional = f"/{page_size}/{context_size}"
         optional_num_context = f"/{context_size}"
@@ -110,6 +111,8 @@ def menu(page_size=default_page_size, context_size=default_context_size):
         optional = f"/{page_size}"
     elif context_size != default_context_size:
         optional_num_context = f"/{context_size}"
+    else:
+        reset_link = ""
 
     min100 = ".{100,}"  # we must interpolate this value instead of including it directly
                         # in the return value since it contains brackets that would
@@ -136,6 +139,9 @@ def menu(page_size=default_page_size, context_size=default_context_size):
                 Search for:
                 <input name="search" type="text" size="20" />
                 <input type="submit" value="Submit" />
+                <div class="menu-hint">
+                    Using page size {page_size}, context size {context_size}. {reset_link}
+                </div>
             </form>
             
             <hr />
@@ -177,9 +183,9 @@ def menu(page_size=default_page_size, context_size=default_context_size):
             
             Custom context size:
             <ul>
-                <li><a href="/message/dog/1/10/2">dog</a> - messages containing "dog", with 2 context messages before and after</li>
-                <li><a href="/message/dog/1/10/1">dog</a> - messages containing "dog", with 1 context message before and after</li>
-                <li><a href="/message/dog/1/10/0">dog</a> - messages containing "dog", with no context messages</li>
+                <li><a href="/message/dog/1/{page_size}/2">dog</a> - messages containing "dog", with 2 context messages before and after</li>
+                <li><a href="/message/dog/1/{page_size}/1">dog</a> - messages containing "dog", with 1 context message before and after</li>
+                <li><a href="/message/dog/1/{page_size}/0">dog</a> - messages containing "dog", with no context messages</li>
             </ul>
         </body>
     </html>
@@ -196,11 +202,20 @@ def head_with_style():
         body {
              font-family: sans-serif;
         }
+        div {
+            margin-bottom: 1em;
+        }
         div.title {
             font-size: 150%;
         }
-        div {
-            margin-bottom: 1em;
+        div.menu-hint {
+            color: #BBB;
+            margin-top: 0.5em;
+            font-style: italic;
+        }
+        div.menu-hint a {
+            color: #BBB;
+            margin-left: 0.5em;
         }
         form {
             margin: 2em 0em;
