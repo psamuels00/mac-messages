@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-from flask import Flask
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 
 import os
 import re
@@ -33,7 +34,7 @@ search_all_identifier = "-"
 # /////////////////////////////////////////////////////////////// global vars
 
 
-app = Flask(__name__)
+app = FastAPI(default_response_class=HTMLResponse)
 
 
 # /////////////////////////////////////////////////////////////// misc
@@ -46,28 +47,28 @@ def search_all(search):
 # /////////////////////////////////////////////////////////////// HTTP endpoints
 
 
-@app.route("/")
-def hello():
+@app.get("/")
+async def hello():
     return menu()
 
 
-@app.route("/message/count")
-def message_count():
+@app.get("/message/count")
+async def message_count():
     return str(count_messages())
 
 
-@app.route("/message")
-def message():
+@app.get("/message")
+async def message():
     return select_messages('html')
 
 
-@app.route("/message/<search>")
-def message_search(search):
+@app.get("/message/{search}")
+async def message_search(search):
     return select_messages('html', search)
 
 
-@app.route("/message/<search>/<int:page>")
-def message_search_page(search, page):
+@app.get("/message/{search}/{page}")
+async def message_search_page(search, page :int):
     return select_messages('html', search, page)
 
 

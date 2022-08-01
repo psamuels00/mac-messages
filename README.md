@@ -26,12 +26,16 @@ To show messages matching a pattern, with context messages, eg:
 
     ./messages.py '\w+dog|dog\w+'
 
+To show the third page of results, eg:
+
+    ./messages.py '\w+dog|dog\w+' 3
+
 ## Run Web server
 
-    ./flask-run.sh
+    ./server-run.sh
 
 To run in debug mode:
 
-    ./flask-run-debug.sh
+    ./server-run-dev.sh
 
-In debug mode, Flask will automatically reload when source files change.
+In development mode, FastAPI will automatically reload when source files change.
