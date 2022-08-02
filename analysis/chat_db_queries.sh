@@ -162,10 +162,40 @@ xdb "
                  limit  2
             )
 "
-xdb "select chat_identifier, count(*) from chat group by chat_identifier"
+
+xdb "
+     select  chat_identifier, count(*)
+       from  chat
+   group by  chat_identifier
+"
 
 db 'tapback value count' "
-    select  associated_message_type tapback, count(*)
+    select  associated_message_type tapback, count(*) count
       from  message
   group by  associated_message_type
 "
+
+db 'tapback vs associated guid' "
+    select  associated_message_type tapback,
+            count(*) count,
+            count(associated_message_guid) count_guid
+      from  message
+  group by  associated_message_type
+"
+
+db 'messages with most tapbacks' "
+    select  associated_message_guid,
+            count(*) count
+      from  message
+  group by  associated_message_guid
+    having  count(*) > 1
+"
+
+db "
+    select  associated_message_guid,
+            count(*) count
+      from  message
+  group by  associated_message_guid
+    having  count(*) = 1
+"
+
