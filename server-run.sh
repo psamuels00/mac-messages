@@ -1,2 +1,2 @@
 #!/bin/bash
-uvicorn messages:app
+uvicorn messages.routes:app

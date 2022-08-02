@@ -1,2 +1,2 @@
 #!/bin/bash
-uvicorn messages:app --reload
+uvicorn messages.routes:app --reload
