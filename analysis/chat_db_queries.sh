@@ -21,8 +21,8 @@ xdb "create view if not exists numbered_message as
             join chat_message_join cmj on (cmj.message_id = m.ROWID)
             join chat c on (c.ROWID = cmj.chat_id)
     "
-db "drop view if exists numbered_message"
-db "create view if not exists numbered_message as
+xdb "drop view if exists numbered_message"
+xdb "create view if not exists numbered_message as
     select  row_number() over(order by m.date desc, c.service_name, c.chat_identifier) row_num,
             datetime(m.date/1000000000  + strftime('%s','2001-01-01'), 'unixepoch', 'localtime') dt,
             c.service_name,
@@ -40,8 +40,8 @@ db "create view if not exists numbered_message as
   group by  m.guid
     "
 
-db "select count(*) a, count(guid) b, count(distinct guid) c from message"
-db "select count(*) a, count(guid) b, count(distinct guid) c from numbered_message"
+xdb "select count(*) a, count(guid) b, count(distinct guid) c from message"
+xdb "select count(*) a, count(guid) b, count(distinct guid) c from numbered_message"
 
 xdb "select count(*) from message where not exists (select * from chat_message_join where message_id = message.rowid)"
 xdb "
@@ -164,3 +164,8 @@ xdb "
 "
 xdb "select chat_identifier, count(*) from chat group by chat_identifier"
 
+db 'tapback value count' "
+    select  associated_message_type tapback, count(*)
+      from  message
+  group by  associated_message_type
+"

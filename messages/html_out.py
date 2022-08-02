@@ -311,6 +311,8 @@ def html_content(rows, search, page, page_size, context_size):
             whose_text = "yours"
             who = icon_you
 
+        tapback = tapback_map[tapback]
+
         row_class = "" if search_all(search) or match_offset == 0 else 'class="context"'
         content += [f"<tr {row_class}>"]
 
