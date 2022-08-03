@@ -72,7 +72,8 @@ def head_with_style():
             color: #3C3;
             font-weight: bold;
         }
-        tr.context {
+        tr.context,
+        tr.context a {
             color: #AAA;
             filter: grayscale(100%);
         }
