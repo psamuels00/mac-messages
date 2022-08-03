@@ -131,14 +131,30 @@ def menu_html(page_size=default_page_size, context_size=default_context_size):
     lb = "{"  # Literal braces must be interpolated into the return value.
     rb = "}"  # If included directly, Python string formatting will choke.
 
+    # Special cases for search value, and how they are automatically transformed:
+    #
+    #     value  new value
+    #     -----  -------
+    #            -
+    #     .      .{1}
+    #     ..     .{2}
+
     return f"""
         <html>
         {head_with_style()}
         <script>
             function form_submit() {lb}
+                value = document.forms.search.search.value
+                if (value == "") {lb}
+                    value = "-"
+                {rb} else if (value == ".") {lb}
+                    value = ".{lb}1{rb}"
+                {rb} else if (value == "..") {lb}
+                    value = ".{lb}2{rb}"
+                {rb}
                 window.location.href
                     = '/message/'
-                    + encodeURI(document.forms.search.search.value)
+                    + encodeURI(value)
                     + '/1'
                     + '{optional}';
                 return false;
