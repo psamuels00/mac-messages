@@ -128,22 +128,41 @@ def menu_html(page_size=default_page_size, context_size=default_context_size):
 
     # TODO Do not add search, page, page_size, or context_size to links unless necessary
 
+    # Special cases for search value, and how they are automatically transformed:
+    #
+    #     value  new value
+    #     -----  -------
+    #            -
+    #     .      .{1}
+    #     ..     .{2}
+
+    script = """
+        <script>
+            function form_submit(optional) {
+                value = document.forms.search.search.value
+                
+                value = {
+                    '': '-',
+                    '.': '.{1}',
+                    '..': '.{2}',
+                }[value] || value;
+                
+                window.location.href = '/message/' + encodeURI(value) + '/1' + optional;
+                return false;
+            }
+        </script>
+    """
+
     return f"""
         <html>
         {head_with_style()}
+        {script}
         <body>
             <div class="title">
                 Welcome to Mac Messages
             </div>
             
-            <form name="search"
-                onsubmit="javascript:
-                          window.location.href
-                              = '/message/'
-                              + encodeURI(document.forms.search.search.value)
-                              + '/1'
-                              + '{optional}';
-                          return false;">
+            <form name="search" onsubmit="return form_submit('{optional}')">
                 Search for:
                 <input name="search" type="text" size="20" />
                 <input type="submit" value="Submit" />
