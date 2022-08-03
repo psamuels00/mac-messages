@@ -1,4 +1,4 @@
-default_context_size = 3
+default_context_size = 0
 # num messages before and after a match to display
 
 default_page_size = 10
