@@ -128,22 +128,28 @@ def menu_html(page_size=default_page_size, context_size=default_context_size):
 
     # TODO Do not add search, page, page_size, or context_size to links unless necessary
 
+    lb = "{"  # Literal braces must be interpolated into the return value.
+    rb = "}"  # If included directly, Python string formatting will choke.
+
     return f"""
         <html>
         {head_with_style()}
+        <script>
+            function form_submit() {lb}
+                window.location.href
+                    = '/message/'
+                    + encodeURI(document.forms.search.search.value)
+                    + '/1'
+                    + '{optional}';
+                return false;
+            {rb}
+        </script>
         <body>
             <div class="title">
                 Welcome to Mac Messages
             </div>
             
-            <form name="search"
-                onsubmit="javascript:
-                          window.location.href
-                              = '/message/'
-                              + encodeURI(document.forms.search.search.value)
-                              + '/1'
-                              + '{optional}';
-                          return false;">
+            <form name="search" onsubmit="return form_submit()">
                 Search for:
                 <input name="search" type="text" size="20" />
                 <input type="submit" value="Submit" />
