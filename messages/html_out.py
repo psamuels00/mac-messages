@@ -138,11 +138,11 @@ def menu_html(page_size=default_page_size, context_size=default_context_size):
 
     script = """
         <script>
-            function form_submit(optional) {
+            function form_submit(optional, search_all_identifier) {
                 value = document.forms.search.search.value
                 
                 value = {
-                    '': '-',
+                    '': search_all_identifier,
                     '.': '.{1}',
                     '..': '.{2}',
                 }[value] || value;
@@ -162,7 +162,7 @@ def menu_html(page_size=default_page_size, context_size=default_context_size):
                 Welcome to Mac Messages
             </div>
             
-            <form name="search" onsubmit="return form_submit('{optional}')">
+            <form name="search" onsubmit="return form_submit('{optional}', '{search_all_identifier}')">
                 Search for:
                 <input name="search" type="text" size="20" />
                 <input type="submit" value="Submit" />
