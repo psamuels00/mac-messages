@@ -57,11 +57,28 @@ def head_with_style():
             color: #BBB;
             margin-left: 1em;
         }
+        li a {
+            font-family: monospace;
+        }
+        .regex {
+            font-family: monospace;
+            background-color: #EEE;
+            padding: 2px 5px;
+        }
         table { 
             border-collapse: collapse;
         }
+        tr.match span {
+            color: #3C3;
+            font-weight: bold;
+        }
         tr.context {
             color: #AAA;
+            filter: grayscale(100%);
+        }
+        tr.context span {
+            color: #9C9;
+            font-weight: bold;
         }
         th {
             border: 1px solid black;
@@ -85,13 +102,6 @@ def head_with_style():
             padding-left: 10em;
         }
         td.yours {
-        }
-        td span.match {
-            color: #3C3;
-            font-weight: bold;
-        }
-        li a {
-            font-family: monospace;
         }
     </style>
     </head>
@@ -195,7 +205,7 @@ def message_count_section(search, page_size):
 
     content = ["<div>"]
 
-    matching = "" if search_all(search) else f" matching /{search}/"
+    matching = "" if search_all(search) else f' matching /<span class="regex">{search}</span>/'
     content += [f"{num_messages} messages{matching}."]
 
     if num_messages > page_size:
@@ -243,7 +253,7 @@ def navigation_menu(search, page, page_size, context_size):
     ])
 
 
-def format_message(text, search):
+def format_message(text, search, match_offset):
     # The formatting is complicated by the possibility that the search pattern
     # is found in a link, which we do not want to disturb.
     #
@@ -267,7 +277,7 @@ def format_message(text, search):
 
     text = re.sub(r"(https?://([^/]+)[^\s\"']*)", swap_link_with_stub, text)
 
-    if not search_all(search):
+    if not search_all(search) and match_offset == 0:
         text = re.sub(f"({search})", r'<span class="match">\1</span>', text, 0, re.IGNORECASE)
 
     text = re.sub(link_stub, swap_stub_with_link, text)
@@ -303,7 +313,7 @@ def html_content(rows, search, page, page_size, context_size):
         else:
             match_offset = "?"
 
-        text = format_message(text, search)
+        text = format_message(text, search, match_offset)
         if is_from_me:
             whose_text = "mine"
             who = icon_me
@@ -313,8 +323,8 @@ def html_content(rows, search, page, page_size, context_size):
 
         tapback = tapback_map[tapback]
 
-        row_class = "" if search_all(search) or match_offset == 0 else 'class="context"'
-        content += [f"<tr {row_class}>"]
+        row_class = "match" if search_all(search) or match_offset == 0 else "context"
+        content += [f'<tr class="{row_class}">']
 
         if enable_diagnostics:
             content += [f"<td>{row_num}</td>"]
