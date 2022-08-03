@@ -128,9 +128,6 @@ def menu_html(page_size=default_page_size, context_size=default_context_size):
 
     # TODO Do not add search, page, page_size, or context_size to links unless necessary
 
-    lb = "{"  # Literal braces must be interpolated into the return value.
-    rb = "}"  # If included directly, Python string formatting will choke.
-
     # Special cases for search value, and how they are automatically transformed:
     #
     #     value  new value
@@ -139,33 +136,33 @@ def menu_html(page_size=default_page_size, context_size=default_context_size):
     #     .      .{1}
     #     ..     .{2}
 
+    script = """
+        <script>
+            function form_submit(optional) {
+                value = document.forms.search.search.value
+                
+                value = {
+                    '': '-',
+                    '.': '.{1}',
+                    '..': '.{2}',
+                }[value] || value;
+                
+                window.location.href = '/message/' + encodeURI(value) + '/1' + optional;
+                return false;
+            }
+        </script>
+    """
+
     return f"""
         <html>
         {head_with_style()}
-        <script>
-            function form_submit() {lb}
-                value = document.forms.search.search.value
-                if (value == "") {lb}
-                    value = "-"
-                {rb} else if (value == ".") {lb}
-                    value = ".{lb}1{rb}"
-                {rb} else if (value == "..") {lb}
-                    value = ".{lb}2{rb}"
-                {rb}
-                window.location.href
-                    = '/message/'
-                    + encodeURI(value)
-                    + '/1'
-                    + '{optional}';
-                return false;
-            {rb}
-        </script>
+        {script}
         <body>
             <div class="title">
                 Welcome to Mac Messages
             </div>
             
-            <form name="search" onsubmit="return form_submit()">
+            <form name="search" onsubmit="return form_submit('{optional}')">
                 Search for:
                 <input name="search" type="text" size="20" />
                 <input type="submit" value="Submit" />
