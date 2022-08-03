@@ -169,13 +169,13 @@ xdb "
    group by  chat_identifier
 "
 
-db 'tapback value count' "
+xdb 'tapback value count' "
     select  associated_message_type tapback, count(*) count
       from  message
   group by  associated_message_type
 "
 
-db 'tapback vs associated guid' "
+xdb 'tapback vs associated guid' "
     select  associated_message_type tapback,
             count(*) count,
             count(associated_message_guid) count_guid
@@ -183,7 +183,7 @@ db 'tapback vs associated guid' "
   group by  associated_message_type
 "
 
-db 'messages with most tapbacks' "
+xdb 'messages with most tapbacks' "
     select  associated_message_guid,
             count(*) count
       from  message
@@ -191,7 +191,7 @@ db 'messages with most tapbacks' "
     having  count(*) > 1
 "
 
-db "
+xdb "
     select  associated_message_guid,
             count(*) count
       from  message
@@ -199,3 +199,8 @@ db "
     having  count(*) = 1
 "
 
+db "
+    select  count(*)
+      from  message
+     where  text is null
+"
