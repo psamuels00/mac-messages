@@ -12,7 +12,7 @@ import sqlite3
 
 def regexp(pattern, value):
     if value is None:
-        return False
+        return pattern == "^$"
     return re.search(pattern, value, re.IGNORECASE) is not None
 
 
