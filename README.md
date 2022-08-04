@@ -20,22 +20,31 @@ Using pyenv, for example:
 
 ## Run from command line
 
-    ./messages.py
+    ./messages.py [pattern] [page] [page-size] [context-size]
 
-To show messages matching a pattern, with context messages, eg:
+All arguments are optional.  The default pattern is "-" to search for all messages.
+Any other value is taken as a regular expression and used to filter messages.
+Results are paged.  Page 1 is displayed by default, using a page size of 10.  If
+a pattern is supplied other than "-", then messages surrounding matched messages
+may be displayed as well.  Context messages are disabled by default using a context
+size of 0.
 
-    ./messages.py '\w+dog|dog\w+'
+For example, to display the first 20 messages containing a word beginning or ending
+with "dog":
 
-To show the third page of results, eg:
+    ./messages.py '\w+dog|dog\w+' 20
 
-    ./messages.py '\w+dog|dog\w+' 3
+To display the 3rd page of messages beginning with "Good", 100 per page, including
+up to 2 context messages before and after matching messages:
+
+    ./messages.py ^good 3 100 2
 
 ## Run Web server
 
     ./server-run.sh
 
-To run in development mode:
+In development mode, the FastAPI server will automatically reload when source files
+change.  To run in development mode:
 
     ./server-run-dev.sh
 
-In development mode, FastAPI will automatically reload when source files change.
