@@ -68,11 +68,11 @@ Commands to examine and cleanup:
 
     container() { docker ps | grep mac-messages | cut -d' ' -f 1; }
     docker exec -it `container` bash
-    docker logs `contain`
-    docker kill `contain`
+    docker logs `container`
+    docker kill `container`
     docker rmi -f mac-messages
 
-## Run from command line in container:
+### Run from command line in container:
 
     cmessages() { docker run --rm -v $HOME/Library/Messages:/app/db --env COLUMNS --entrypoint ./messages.py mac-messages $@; }
     cmessages
