@@ -18,8 +18,7 @@ def regexp(pattern, value):
 
 def open_database():
     home = os.environ["HOME"]
-    chat_db = f"{home}/Library/Messages/chat.db"
-    conn = sqlite3.connect(chat_db)
+    conn = sqlite3.connect("chat.db")
     conn.create_function("REGEXP", 2, regexp)
     return conn
 
