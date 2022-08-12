@@ -99,10 +99,14 @@ def head_with_style():
         td.atomic {
             white-space: nowrap;
         }
+        tr.mine {
+            color: steelblue;
+        }
         td.mine {
             padding-left: 10em;
         }
-        td.yours {
+        tr.yours {
+            color: indianred;  /* forestgreen mediumviletred darkgoldenrod */
         }
     </style>
     </head>
@@ -335,16 +339,17 @@ def html_content(rows, search, page, page_size, context_size):
 
         text = format_message(text, search, match_offset)
         if is_from_me:
-            whose_text = "mine"
+            whose_class = "mine"
             who = icon_me
         else:
-            whose_text = "yours"
+            whose_class = "yours"
             who = icon_you
 
-        tapback = tapback_map[tapback]
+        tapback = tapback_map.get(tapback, tapback_map["default"])
 
-        row_class = "match" if search_all(search) or match_offset == 0 else "context"
-        content += [f'<tr class="{row_class}">']
+        match_class = "match" if search_all(search) or match_offset == 0 else "context"
+        row_classes = f"{match_class} {whose_class}"
+        content += [f'<tr class="{row_classes}">']
 
         if enable_diagnostics:
             content += [f"<td>{row_num}</td>"]
@@ -355,7 +360,7 @@ def html_content(rows, search, page, page_size, context_size):
         content += [f"<td>{chat_id}</td>"]
         content += [f"<td>{who}</td>"]
         content += [f"<td>{tapback}</td>"]
-        content += [f'<td class="{whose_text}">{text}</td>']
+        content += [f'<td class="{whose_class}">{text}</td>']
 
         content += ["</tr>"]
 

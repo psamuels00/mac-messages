@@ -26,6 +26,7 @@ tapback_map = {
     3003: "-😆",
     3004: "-❗",
     3005: "-❓",
+    "default": "🤪???",
 }
 
 # ////////////  constants not likely needing to be changed
