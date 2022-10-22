@@ -7,7 +7,7 @@ Search through messages on a Mac using regular expressions.
 
 Using pyenv, for example:
 
-    pyenv virtualenv 3.7.3 mac-messages
+    pyenv virtualenv 3.8.9 mac-messages
     pyenv local mac-messages
 
 ### Create link to messages database
