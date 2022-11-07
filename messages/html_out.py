@@ -123,6 +123,7 @@ def menu_html(page_size=default_page_size, context_size=default_context_size):
     elif page_size != default_page_size:
         optional = f"/{page_size}"
     elif context_size != default_context_size:
+        optional = f"/{page_size}/{context_size}"
         optional_num_context = f"/{context_size}"
     else:
         reset_link = ""
