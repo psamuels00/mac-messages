@@ -32,7 +32,7 @@ size of 0.
 For example, to display the first 20 messages containing a word beginning or ending
 with "dog":
 
-    ./messages.py '\w+dog|dog\w+' 20
+    ./messages.py '\w+dog|dog\w+' 1 20
 
 To display the 3rd page of messages beginning with "Good", 100 per page, including
 up to 2 context messages before and after matching messages:
@@ -47,8 +47,6 @@ In development mode, the FastAPI server will automatically reload when source fi
 change.  To run in development mode:
 
     ./server-run-dev.sh
-
-In development mode, FastAPI will automatically reload when source files change.
 
 
 ## Run in Docker container
